@@ -1,0 +1,15 @@
+# java
+*.class
+
+# gradle
+/build
+/.gradle
+
+# idea
+/out
+/.idea
+*.iml
+*.ipr
+*.iws
+
+.DS_Store
