@@ -3,13 +3,14 @@ package net.shadowfacts.config.impl.typesafe;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigValueFactory;
 import net.shadowfacts.config.ConfigTypeAdapter;
+import net.shadowfacts.config.ConfigWrapper;
 import net.shadowfacts.config.exception.ConfigException;
 import net.shadowfacts.config.exception.MissingPropertyException;
 
 /**
  * @author shadowfacts
  */
-public class BooleanAdapter implements ConfigTypeAdapter<Config, Boolean> {
+public class BooleanAdapter implements TypesafeTypeAdapter<Config, Boolean> {
 
 	public static final BooleanAdapter instance = new BooleanAdapter();
 
@@ -17,16 +18,12 @@ public class BooleanAdapter implements ConfigTypeAdapter<Config, Boolean> {
 	}
 
 	@Override
-	public Config writeToConfig(String category, String name, String description, Config config, Boolean value) throws ConfigException {
-		return config.withValue(category + "." + name, ConfigValueFactory.fromAnyRef(value, description));
-	}
-
-	@Override
-	public Boolean readFromConfig(String category, String name, Config config) throws ConfigException {
-		try {
-			return config.getBoolean(category + "." + name);
-		} catch (com.typesafe.config.ConfigException.Missing e) {
-			throw new MissingPropertyException(String.format("Missing property %s.%s", category, name), e);
+	public Boolean load(String path, String description, ConfigWrapper<Config> config, Boolean value) throws ConfigException {
+		if (config.get().hasPath(path)) {
+			return config.get().getBoolean(path);
+		} else {
+			config.set(config.get().withValue(path, ConfigValueFactory.fromAnyRef(value, description)));
+			return value;
 		}
 	}
 

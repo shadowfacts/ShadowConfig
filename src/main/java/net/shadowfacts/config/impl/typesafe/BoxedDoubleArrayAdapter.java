@@ -1,8 +1,10 @@
 package net.shadowfacts.config.impl.typesafe;
 
 import com.typesafe.config.Config;
+import com.typesafe.config.ConfigValue;
 import com.typesafe.config.ConfigValueFactory;
 import net.shadowfacts.config.ConfigTypeAdapter;
+import net.shadowfacts.config.ConfigWrapper;
 import net.shadowfacts.config.exception.ConfigException;
 import net.shadowfacts.config.exception.MissingPropertyException;
 
@@ -11,25 +13,20 @@ import java.util.List;
 /**
  * @author shadowfacts
  */
-public class BoxedDoubleArrayAdapter implements ConfigTypeAdapter<Config, Double[]> {
+public class BoxedDoubleArrayAdapter implements TypesafeTypeAdapter<Config, Double[]> {
 
 	public static final BoxedDoubleArrayAdapter instance = new BoxedDoubleArrayAdapter();
 
 	private BoxedDoubleArrayAdapter() {
 	}
 
-	@Override
-	public Config writeToConfig(String category, String name, String description, Config config, Double[] value) throws ConfigException {
-		return config.withValue(category + "." + name, ConfigValueFactory.fromAnyRef(value, description));
-	}
-
-	@Override
-	public Double[] readFromConfig(String category, String name, Config config) throws ConfigException {
-		try {
-			List<Double> list = config.getDoubleList(category + "." + name);
+	public Double[] load(String path, String description, ConfigWrapper<Config> config, Double[] value) throws ConfigException {
+		if (config.get().hasPath(path)) {
+			List<Double> list = config.get().getDoubleList(path);
 			return list.toArray(new Double[list.size()]);
-		} catch(com.typesafe.config.ConfigException.Missing e) {
-			throw new MissingPropertyException(String.format("Missing property %s.%s", category, name), e);
+		} else {
+			config.set(config.get().withValue(path, ConfigValueFactory.fromAnyRef(value)));
+			return value;
 		}
 	}
 

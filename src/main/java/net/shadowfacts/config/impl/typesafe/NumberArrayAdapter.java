@@ -3,6 +3,7 @@ package net.shadowfacts.config.impl.typesafe;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigValueFactory;
 import net.shadowfacts.config.ConfigTypeAdapter;
+import net.shadowfacts.config.ConfigWrapper;
 import net.shadowfacts.config.exception.ConfigException;
 import net.shadowfacts.config.exception.MissingPropertyException;
 
@@ -11,7 +12,7 @@ import java.util.List;
 /**
  * @author shadowfacts
  */
-public class NumberArrayAdapter implements ConfigTypeAdapter<Config, Number[]> {
+public class NumberArrayAdapter implements TypesafeTypeAdapter<Config, Number[]> {
 
 	public static final NumberArrayAdapter instance = new NumberArrayAdapter();
 
@@ -19,17 +20,13 @@ public class NumberArrayAdapter implements ConfigTypeAdapter<Config, Number[]> {
 	}
 
 	@Override
-	public Config writeToConfig(String category, String name, String description, Config config, Number[] value) throws ConfigException {
-		return config.withValue(category + "." + name, ConfigValueFactory.fromAnyRef(value, description));
-	}
-
-	@Override
-	public Number[] readFromConfig(String category, String name, Config config) throws ConfigException {
-		try {
-			List<Number> list = config.getNumberList(category + "." + name);
+	public Number[] load(String path, String description, ConfigWrapper<Config> config, Number[] value) throws ConfigException {
+		if (config.get().hasPath(path)) {
+			List<Number> list = config.get().getNumberList(path);
 			return list.toArray(new Number[list.size()]);
-		} catch (com.typesafe.config.ConfigException.Missing e) {
-			throw new MissingPropertyException(String.format("Missing property %s.%s", category, name), e);
+		} else {
+			config.set(config.get().withValue(path, ConfigValueFactory.fromAnyRef(value)));
+			return value;
 		}
 	}
 

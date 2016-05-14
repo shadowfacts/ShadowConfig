@@ -1,15 +1,17 @@
 package net.shadowfacts.config.impl.typesafe;
 
 import com.typesafe.config.Config;
+import com.typesafe.config.ConfigValue;
 import com.typesafe.config.ConfigValueFactory;
 import net.shadowfacts.config.ConfigTypeAdapter;
+import net.shadowfacts.config.ConfigWrapper;
 import net.shadowfacts.config.exception.ConfigException;
 import net.shadowfacts.config.exception.MissingPropertyException;
 
 /**
  * @author shadowfacts
  */
-public class NumberAdapter implements ConfigTypeAdapter<Config, Number> {
+public class NumberAdapter implements TypesafeTypeAdapter<Config, Number> {
 
 	public static final NumberAdapter instance = new NumberAdapter();
 
@@ -17,16 +19,12 @@ public class NumberAdapter implements ConfigTypeAdapter<Config, Number> {
 	}
 
 	@Override
-	public Config writeToConfig(String category, String name, String description, Config config, Number value) throws ConfigException {
-		return config.withValue(category + "." + name, ConfigValueFactory.fromAnyRef(value, description));
-	}
-
-	@Override
-	public Number readFromConfig(String category, String name, Config config) throws ConfigException {
-		try {
-			return config.getNumber(category + "." + name);
-		} catch (com.typesafe.config.ConfigException.Missing e) {
-			throw new MissingPropertyException(String.format("Missing property %s.%s", category, name), e);
+	public Number load(String path, String description, ConfigWrapper<Config> config, Number value) throws ConfigException {
+		if (config.get().hasPath(path)) {
+			return config.get().getNumber(path);
+		} else {
+			config.set(config.get().withValue(path, ConfigValueFactory.fromAnyRef(value)));
+			return value;
 		}
 	}
 

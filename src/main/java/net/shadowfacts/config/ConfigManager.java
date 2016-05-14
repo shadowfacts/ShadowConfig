@@ -38,9 +38,11 @@ public class ConfigManager {
 	}
 
 	// PUBLIC
-	public static <C> C save(Class<?> clazz, Class<C> configClazz, C config) throws ConfigException {
+	public static <C> C load(Class<?> clazz, Class<C> configClazz, C config) throws ConfigException {
 		if (hasConfigClazz(configClazz) && clazz.isAnnotationPresent(Config.class)) {
 			Config annotation = clazz.getAnnotation(Config.class);
+
+			ConfigWrapper<C> wrapper = ConfigWrapper.of(config);
 
 			for (Field field : clazz.getDeclaredFields()) {
 				if (Modifier.isStatic(field.getModifiers()) && field.isAnnotationPresent(Config.Prop.class)) {
@@ -57,40 +59,7 @@ public class ConfigManager {
 						try {
 							field.setAccessible(true);
 
-							config = adapter.writeToConfig(prop.category(), name, prop.description(), config, field.get(null));
-						} catch (ReflectiveOperationException e) {
-							System.err.println("Problem saving field " + field.getName() + " for config " + annotation.name() + "(" + clazz.getName() + ".class)");
-							throw new RuntimeException(e);
-						}
-					}
-
-				}
-			}
-		}
-
-		return config;
-	}
-
-	public static <C> void load(Class<?> clazz, Class<C> configClazz, C config) throws ConfigException {
-		if (hasConfigClazz(configClazz) && clazz.isAnnotationPresent(Config.class)) {
-			Config annotation = clazz.getAnnotation(Config.class);
-
-			for (Field field : clazz.getDeclaredFields()) {
-				if (Modifier.isStatic(field.getModifiers()) && field.isAnnotationPresent(Config.Prop.class)) {
-
-					Config.Prop prop = field.getAnnotation(Config.Prop.class);
-
-					Class fieldClazz = field.getType();
-					@SuppressWarnings("unchecked")
-					ConfigTypeAdapter<C, Object> adapter = getTypeAdapter(configClazz, fieldClazz);
-
-					if (adapter != null) {
-						String name = prop.name().isEmpty() ? field.getName() : prop.name();
-
-						try {
-							field.setAccessible(true);
-
-							field.set(null, adapter.readFromConfig(prop.category(), name, config));
+							field.set(null, adapter.load(prop.category(), name, prop.description(), wrapper, field.get(null)));
 						} catch (ReflectiveOperationException e) {
 							System.err.println("Problem loading field " + field.getName() + " for config " + annotation.name() + "(" + clazz.getName() + ".class)");
 							throw new RuntimeException(e);
@@ -99,9 +68,14 @@ public class ConfigManager {
 
 				}
 			}
+
+			return wrapper.get();
 		}
+
+		return config;
 	}
 
+	@SuppressWarnings("unchecked")
 	public static <C, V> void registerTypeAdapter(Class<C> configClazz, Class<V> fieldClass, ConfigTypeAdapter<C, V> adapter) {
 		if (!hasConfigClazz(configClazz)) {
 			configClassToTypeAdapterMap.put(configClazz, new HashMap<>());
