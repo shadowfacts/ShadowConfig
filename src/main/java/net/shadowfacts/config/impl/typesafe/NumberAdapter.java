@@ -1,12 +1,9 @@
 package net.shadowfacts.config.impl.typesafe;
 
 import com.typesafe.config.Config;
-import com.typesafe.config.ConfigValue;
 import com.typesafe.config.ConfigValueFactory;
-import net.shadowfacts.config.ConfigTypeAdapter;
 import net.shadowfacts.config.ConfigWrapper;
 import net.shadowfacts.config.exception.ConfigException;
-import net.shadowfacts.config.exception.MissingPropertyException;
 
 /**
  * @author shadowfacts

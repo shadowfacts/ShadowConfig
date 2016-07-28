@@ -1,12 +1,9 @@
 package net.shadowfacts.config.impl.typesafe;
 
-import com.sun.org.apache.xpath.internal.operations.Bool;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigValueFactory;
-import net.shadowfacts.config.ConfigTypeAdapter;
 import net.shadowfacts.config.ConfigWrapper;
 import net.shadowfacts.config.exception.ConfigException;
-import net.shadowfacts.config.exception.MissingPropertyException;
 
 import java.util.List;
 
