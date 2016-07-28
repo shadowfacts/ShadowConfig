@@ -11,6 +11,8 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
+ * Manages storing type adapters and loading configurations
+ *
  * @author shadowfacts
  */
 public class ConfigManager {
@@ -40,6 +42,15 @@ public class ConfigManager {
 	}
 
 	// PUBLIC
+	/**
+	 * Loads a configuration
+	 * @param clazz The class to load from
+	 * @param configClazz The class of the configuration object to use
+	 * @param config The configuration object to use
+	 * @param <C> The type of the configuration object
+	 * @return The modified configuration object. <b>This may be different from the object passed in or it may be the same instance</b>
+	 * @throws ConfigException If there is a problem loading a property from the configuration or setting a field or if there are type adapter(s) missing
+	 */
 	public static <C> C load(Class<?> clazz, Class<C> configClazz, C config) throws ConfigException {
 		MirrorClass<?> mirror = Mirror.of(clazz);
 
@@ -78,6 +89,14 @@ public class ConfigManager {
 		}
 	}
 
+	/**
+	 * Registers a type adapter
+	 * @param configClazz The configuration class that this type adapter is suitable for
+	 * @param fieldClass The type that this type adapter accepts
+	 * @param adapter The adapter instance
+	 * @param <C> The type of the configuration class
+	 * @param <V> The type of the type adapter
+	 */
 	@SuppressWarnings("unchecked")
 	public static <C, V> void registerTypeAdapter(Class<C> configClazz, Class<V> fieldClass, ConfigTypeAdapter<C, V> adapter) {
 		if (!hasConfigClazz(configClazz)) {

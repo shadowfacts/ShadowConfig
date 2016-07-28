@@ -1,6 +1,8 @@
 package net.shadowfacts.config.exception;
 
 /**
+ * A generic configuration exception
+ *
  * @author shadowfacts
  */
 public class ConfigException extends RuntimeException {
