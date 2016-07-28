@@ -2,6 +2,8 @@ package net.shadowfacts.config;
 
 import net.shadowfacts.config.exception.ConfigException;
 import net.shadowfacts.config.impl.typesafe.TypesafeAdapter;
+import net.shadowfacts.mirror.Mirror;
+import net.shadowfacts.mirror.MirrorClass;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
@@ -13,7 +15,7 @@ import java.util.Map;
  */
 public class ConfigManager {
 
-	private static Map<Class<?>, Map> configClassToTypeAdapterMap = new HashMap<>();
+	private static Map<MirrorClass<?>, Map> configClassToTypeAdapterMap = new HashMap<>();
 
 	static {
 		TypesafeAdapter.init();
@@ -21,67 +23,68 @@ public class ConfigManager {
 
 	// INTERNAL
 	private static boolean hasConfigClazz(Class<?> configClazz) {
-		return configClassToTypeAdapterMap.containsKey(configClazz);
+		return configClassToTypeAdapterMap.containsKey(Mirror.of(configClazz));
 	}
 
 	@SuppressWarnings("unchecked")
-	private static <C, V> Map<Class<V>, ConfigTypeAdapter<C, V>> getAdapterMap(Class<C> configClazz, Class<V> valueClazz) {
-		return (Map<Class<V>, ConfigTypeAdapter<C, V>>)configClassToTypeAdapterMap.get(configClazz);
+	private static <C, V> Map<Class<V>, ConfigTypeAdapter<C, V>> getAdapterMap(Class<C> configClazz) {
+		return (Map<Class<V>, ConfigTypeAdapter<C, V>>)configClassToTypeAdapterMap.get(Mirror.of(configClazz));
 	}
 
 	private static <C, V> ConfigTypeAdapter<C, V> getTypeAdapter(Class<C> configClazz, Class<V> valueClazz) {
-		Map<Class<V>, ConfigTypeAdapter<C, V>> adapterMap = getAdapterMap(configClazz, valueClazz);
+		Map<Class<V>, ConfigTypeAdapter<C, V>> adapterMap = getAdapterMap(configClazz);
 		if (adapterMap != null) {
-			return adapterMap.get(valueClazz);
+			return adapterMap.get(Mirror.of(valueClazz));
 		}
 		return null;
 	}
 
 	// PUBLIC
 	public static <C> C load(Class<?> clazz, Class<C> configClazz, C config) throws ConfigException {
-		if (hasConfigClazz(configClazz) && clazz.isAnnotationPresent(Config.class)) {
-			Config annotation = clazz.getAnnotation(Config.class);
+		MirrorClass<?> mirror = Mirror.of(clazz);
 
+		if (hasConfigClazz(configClazz) && mirror.hasAnnotation(Config.class)) {
 			ConfigWrapper<C> wrapper = ConfigWrapper.of(config);
 
-			for (Field field : clazz.getDeclaredFields()) {
-				if (Modifier.isStatic(field.getModifiers()) && field.isAnnotationPresent(Config.Prop.class)) {
+			mirror.declaredFields()
+					.isStatic()
+					.hasAnnotation(Config.Prop.class)
+					.forEach(f -> {
+						Config.Prop prop = f.getAnnotation(Config.Prop.class);
 
-					Config.Prop prop = field.getAnnotation(Config.Prop.class);
+						MirrorClass fieldClazz = f.type();
 
-					Class fieldClazz = field.getType();
-					@SuppressWarnings("unchecked")
-					ConfigTypeAdapter<C, Object> adapter = getTypeAdapter(configClazz, fieldClazz);
+						@SuppressWarnings("unchecked")
+						ConfigTypeAdapter<C, Object> adapter = getTypeAdapter(configClazz, fieldClazz.unwrap());
 
-					if (adapter != null) {
-						String name = prop.name().isEmpty() ? field.getName() : prop.name();
+						if (adapter != null) {
+							String name = prop.name().isEmpty() ? f.name() : prop.name();
 
-						try {
-							field.setAccessible(true);
-
-							field.set(null, adapter.load(prop.category(), name, prop.description(), wrapper, field.get(null)));
-						} catch (ReflectiveOperationException e) {
-							System.err.println("Problem loading field " + field.getName() + " for config " + annotation.name() + "(" + clazz.getName() + ".class)");
-							throw new RuntimeException(e);
+							try {
+								f.setAccessible(true);
+								f.set(null, adapter.load(prop.category(), name, prop.description(), wrapper, f.get(null)));
+							} catch (Exception e) {
+								System.err.println("Problem loading field " + f.name() + " for config class " + mirror.fullName());
+								throw new ConfigException(e);
+							}
+						} else {
+							throw new ConfigException("No type adapter for configuration class " + configClazz.getName() + " and field type " + fieldClazz.fullName());
 						}
-					}
-
-				}
-			}
+					});
 
 			return wrapper.get();
+		} else {
+			throw new ConfigException("No configuration handlers for configuration class " + configClazz.getName());
 		}
-
-		return config;
 	}
 
 	@SuppressWarnings("unchecked")
 	public static <C, V> void registerTypeAdapter(Class<C> configClazz, Class<V> fieldClass, ConfigTypeAdapter<C, V> adapter) {
 		if (!hasConfigClazz(configClazz)) {
-			configClassToTypeAdapterMap.put(configClazz, new HashMap<>());
+			configClassToTypeAdapterMap.put(Mirror.of(configClazz), new HashMap<>());
 		}
 
-		configClassToTypeAdapterMap.get(configClazz).put(fieldClass, adapter);
+		configClassToTypeAdapterMap.get(Mirror.of(configClazz)).put(Mirror.of(fieldClass), adapter);
 	}
 
 }

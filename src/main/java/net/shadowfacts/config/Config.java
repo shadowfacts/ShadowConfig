@@ -12,6 +12,7 @@ import java.lang.annotation.Target;
 @Target(ElementType.TYPE)
 public @interface Config {
 
+	@Deprecated
 	String name();
 
 	@Retention(RetentionPolicy.RUNTIME)
